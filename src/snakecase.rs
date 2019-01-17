@@ -81,7 +81,7 @@ where
                 // string needs to be modified
                 let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
                 result.push_str(&c.to_lowercase().to_string());
-                // loop until finding anoth non-alpha or multiple underscores then add in bulk to string
+                // loop until finding another non-alpha or multiple underscores then add in bulk to string
                 if let Some((_, c)) = chars.peek() {
                     if !c.is_uppercase() {
                         result.push(UNDERSCORE_CHAR);
@@ -108,14 +108,10 @@ where
                         // a no go character, string needs modification
                         let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
                         result.push_str(&input[..idx]);
-                        // might need to check if at end of string, may be able to set bool above in the peek in an else statement
-                        // result.push(UNDERSCORE_CHAR);
                         snakecase_mod(true, &input, &mut result, &mut chars);
                         return result.into();
                     } else if c.is_uppercase() {
                         // string needs to be modified
-                        // let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
-                        // result.push_str(&c.to_lowercase().to_string());
                         let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
                         result.push_str(&input[..idx]);
                         if let Some((_, c)) = chars.peek() {
@@ -135,9 +131,9 @@ where
     }
 }
 
-fn snakecase_mod<'a>(
+fn snakecase_mod(
     add_underscore: bool,
-    input: &Cow<'a, str>,
+    input: &str,
     result: &mut String,
     chars: &mut std::iter::Peekable<std::iter::Fuse<std::str::CharIndices<'_>>>,
 ) {
@@ -154,9 +150,6 @@ fn snakecase_mod<'a>(
             while let Some((end, c)) = chars.peek() {
                 if !c.is_uppercase() {
                     result.push_str(&input[start..*end].to_lowercase());
-                    // if !c.is_alphanumeric() {
-                    //     result.push(UNDERSCORE_CHAR);
-                    // }
                     return snakecase_mod(!c.is_lowercase(), &input, result, chars);
                 }
                 chars.next();
@@ -169,43 +162,13 @@ fn snakecase_mod<'a>(
         while let Some((end, c)) = chars.peek() {
             if !c.is_lowercase() && !c.is_numeric() {
                 result.push_str(&input[start..*end]);
-                // result.push(UNDERSCORE_CHAR);
                 return snakecase_mod(true, &input, result, chars);
             }
             chars.next();
         }
         result.push_str(&input[start..]);
         return;
-
-        // add all uppercase
-        // else
-        // add all good chars
-        // else
-        // call this function again
-
-        // if c.is_uppercase() {
-        //     result.push_str(&c.to_lowercase().to_string());
-        // } else {
-        //     // push all good chars in one chunk
-        //     while let Some((end, c)) = chars.next() {
-        //         if !c.is_lowercase() && !c.is_numeric() {
-        //             result.push_str(&input[start..end]);
-        //             break;
-        //         }
-        //     }
-        //     // result.push(c);
-        // }
-
-        // while let Some((_, c)) = chars.next() {}
     }
-}
-
-fn test<'a>(
-    s: &Cow<'a, str>,
-    result: &mut String,
-    chars: &mut std::iter::Peekable<std::iter::Fuse<std::str::CharIndices<'_>>>,
-) {
-    result.push('r');
 }
 
 #[cfg(test)]

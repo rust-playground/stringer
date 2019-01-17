@@ -3,7 +3,6 @@
 extern crate test;
 
 use stringer::snakecase::to_snakecase;
-use test::Bencher;
 
 macro_rules! snakecase_bench {
     ($name:ident, $s:expr) => {
