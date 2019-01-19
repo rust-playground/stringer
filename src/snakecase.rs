@@ -132,9 +132,11 @@ where
         } else {
             Vec::with_capacity(64)
         };
-        result.push((b as char).to_lowercase().next().unwrap() as u8);
+        result.push(b.to_ascii_lowercase());
         snakecase_mod_ascii(&mut result, &bytes[idx + 1..]);
-        return Cow::Owned(String::from_utf8(result).unwrap());
+        // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
+        // to only have utf-8 at this point.
+        return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
     } else if !b.is_ascii_alphanumeric() {
         let mut result: Vec<u8> = if bytes.len() > 64 {
             Vec::with_capacity(bytes.len() + 7)
@@ -150,7 +152,9 @@ where
             break;
         }
         snakecase_mod_ascii(&mut result, &bytes[idx..]);
-        return Cow::Owned(String::from_utf8(result).unwrap());
+        // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
+        // to only have utf-8 at this point.
+        return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
     } else {
         let mut b2;
         // check until hitting a bad value
@@ -173,10 +177,12 @@ where
                     if !b2.is_ascii_uppercase() {
                         result.push(UNDERSCORE_BYTE);
                     }
-                    result.push((b as char).to_lowercase().next().unwrap() as u8);
+                    result.push(b.to_ascii_lowercase());
                     snakecase_mod_ascii(&mut result, &bytes[idx..]);
                 }
-                return Cow::Owned(String::from_utf8(result).unwrap());
+                // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
+                // to only have utf-8 at this point.
+                return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
             } else if !b.is_ascii_alphanumeric() {
                 // check for double _
                 if b == b'_' && idx < l {
@@ -196,7 +202,9 @@ where
                 };
                 result.extend_from_slice(&bytes[..idx]);
                 snakecase_mod_ascii(&mut result, &bytes[idx..]);
-                return Cow::Owned(String::from_utf8(result).unwrap());
+                // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
+                // to only have utf-8 at this point.
+                return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
             }
             idx += 1;
         }
@@ -220,12 +228,12 @@ fn snakecase_mod_ascii(result: &mut Vec<u8>, bytes: &[u8]) {
         }
 
         if b.is_ascii_uppercase() {
-            result.push((b as char).to_lowercase().next().unwrap() as u8);
+            result.push(b.to_ascii_lowercase());
             idx += 1;
             while idx < bytes.len() {
                 b = bytes[idx];
                 if b.is_ascii_uppercase() {
-                    result.push((b as char).to_lowercase().next().unwrap() as u8);
+                    result.push(b.to_ascii_lowercase());
                     idx += 1;
                     continue;
                 }
