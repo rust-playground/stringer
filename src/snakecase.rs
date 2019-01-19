@@ -110,6 +110,8 @@ fn snakecase_mod(
     }
 }
 
+const UNDERSCORE_BYTE: u8 = b'_';
+
 pub fn to_snakecase_ascii<'a, S>(s: S) -> Cow<'a, str>
 where
     S: Into<Cow<'a, str>>,
@@ -123,63 +125,63 @@ where
     let mut idx = 0;
     let mut b = bytes[idx];
 
-    if is_uppercase(b) {
+    if b.is_ascii_uppercase() {
         // string needs to be modified
-        let mut result: String = if bytes.len() > 64 {
-            String::with_capacity(bytes.len() + 7)
+        let mut result: Vec<u8> = if bytes.len() > 64 {
+            Vec::with_capacity(bytes.len() + 7)
         } else {
-            String::with_capacity(64)
+            Vec::with_capacity(64)
         };
-        result.push((b as char).to_lowercase().next().unwrap());
+        result.push((b as char).to_lowercase().next().unwrap() as u8);
         snakecase_mod_ascii(&mut result, &bytes[idx + 1..]);
-        return result.into();
-    } else if !is_alphanumeric(b) {
-        let mut result: String = if bytes.len() > 64 {
-            String::with_capacity(bytes.len() + 7)
+        return Cow::Owned(String::from_utf8(result).unwrap());
+    } else if !b.is_ascii_alphanumeric() {
+        let mut result: Vec<u8> = if bytes.len() > 64 {
+            Vec::with_capacity(bytes.len() + 7)
         } else {
-            String::with_capacity(64)
+            Vec::with_capacity(64)
         };
         while idx < bytes.len() {
             b = bytes[idx];
-            if !is_alphanumeric(b) {
+            if !b.is_ascii_alphanumeric() {
                 idx += 1;
                 continue;
             }
             break;
         }
         snakecase_mod_ascii(&mut result, &bytes[idx..]);
-        return result.into();
+        return Cow::Owned(String::from_utf8(result).unwrap());
     } else {
         let mut b2;
         // check until hitting a bad value
         while idx < bytes.len() {
             b = bytes[idx];
 
-            if is_uppercase(b) {
+            if b.is_ascii_uppercase() {
                 // string needs to be modified
 
                 // although there is overhead it alows more balanced performance for both short and long input
-                let mut result: String = if bytes.len() > 64 {
-                    String::with_capacity(bytes.len() + 7) // if longer than 64, better to do length
+                let mut result: Vec<u8> = if bytes.len() > 64 {
+                    Vec::with_capacity(bytes.len() + 7) // if longer than 64, better to do length
                 } else {
-                    String::with_capacity(64) // plays nice with the L2 cache
+                    Vec::with_capacity(64) // plays nice with the L2 cache
                 };
-                result.push_str(&input[..idx]);
+                result.extend_from_slice(&bytes[..idx]);
                 if idx < l {
                     idx += 1;
                     b2 = bytes[idx];
-                    if !is_uppercase(b2) {
-                        result.push(UNDERSCORE_CHAR);
+                    if !b2.is_ascii_uppercase() {
+                        result.push(UNDERSCORE_BYTE);
                     }
-                    result.push((b as char).to_lowercase().next().unwrap());
+                    result.push((b as char).to_lowercase().next().unwrap() as u8);
                     snakecase_mod_ascii(&mut result, &bytes[idx..]);
                 }
-                return result.into();
-            } else if !is_alphanumeric(b) {
+                return Cow::Owned(String::from_utf8(result).unwrap());
+            } else if !b.is_ascii_alphanumeric() {
                 // check for double _
                 if b == b'_' && idx < l {
                     b2 = bytes[idx + 1];
-                    if is_lowercase(b2) || is_digit(b2) {
+                    if b2.is_ascii_lowercase() || b2.is_ascii_digit() {
                         // is a single underscore followed by a lowercase or digit
                         // still no modifications needed
                         idx += 2;
@@ -187,14 +189,14 @@ where
                     }
                 }
                 // a no go character, string needs modification
-                let mut result: String = if bytes.len() > 64 {
-                    String::with_capacity(bytes.len() + 7)
+                let mut result: Vec<u8> = if bytes.len() > 64 {
+                    Vec::with_capacity(bytes.len() + 7)
                 } else {
-                    String::with_capacity(64)
+                    Vec::with_capacity(64)
                 };
-                result.push_str(&input[..idx]);
+                result.extend_from_slice(&bytes[..idx]);
                 snakecase_mod_ascii(&mut result, &bytes[idx..]);
-                return result.into();
+                return Cow::Owned(String::from_utf8(result).unwrap());
             }
             idx += 1;
         }
@@ -202,28 +204,28 @@ where
     input
 }
 
-fn snakecase_mod_ascii(result: &mut String, bytes: &[u8]) {
+fn snakecase_mod_ascii(result: &mut Vec<u8>, bytes: &[u8]) {
     let mut b;
     let mut idx = 0;
 
     while idx < bytes.len() {
         b = bytes[idx];
-        if !is_alphanumeric(b) {
+        if !b.is_ascii_alphanumeric() {
             idx += 1;
             continue;
         }
 
         if idx > 0 {
-            result.push(UNDERSCORE_CHAR);
+            result.push(UNDERSCORE_BYTE);
         }
 
-        if is_uppercase(b) {
-            result.push((b as char).to_lowercase().next().unwrap());
+        if b.is_ascii_uppercase() {
+            result.push((b as char).to_lowercase().next().unwrap() as u8);
             idx += 1;
             while idx < bytes.len() {
                 b = bytes[idx];
-                if is_uppercase(b) {
-                    result.push((b as char).to_lowercase().next().unwrap());
+                if b.is_ascii_uppercase() {
+                    result.push((b as char).to_lowercase().next().unwrap() as u8);
                     idx += 1;
                     continue;
                 }
@@ -231,13 +233,13 @@ fn snakecase_mod_ascii(result: &mut String, bytes: &[u8]) {
             }
         }
 
-        if is_lowercase(b) || is_digit(b) {
-            result.push(b as char);
+        if b.is_ascii_lowercase() || b.is_ascii_digit() {
+            result.push(b);
             idx += 1;
             while idx < bytes.len() {
                 b = bytes[idx];
-                if is_lowercase(b) || is_digit(b) {
-                    result.push(b as char);
+                if b.is_ascii_lowercase() || b.is_ascii_digit() {
+                    result.push(b);
                     idx += 1;
                     continue;
                 }
@@ -245,43 +247,6 @@ fn snakecase_mod_ascii(result: &mut String, bytes: &[u8]) {
             }
         }
     }
-}
-
-#[inline]
-fn is_alphabetic(b: u8) -> bool {
-    match b {
-        b'a'..=b'z' | b'A'..=b'Z' => true,
-        _ => false,
-    }
-}
-
-#[inline]
-fn is_uppercase(b: u8) -> bool {
-    match b {
-        b'A'..=b'Z' => true,
-        _ => false,
-    }
-}
-
-#[inline]
-fn is_lowercase(b: u8) -> bool {
-    match b {
-        b'a'..=b'z' => true,
-        _ => false,
-    }
-}
-
-#[inline]
-fn is_digit(b: u8) -> bool {
-    match b {
-        b'0'..=b'9' => true,
-        _ => false,
-    }
-}
-
-#[inline]
-fn is_alphanumeric(b: u8) -> bool {
-    is_alphabetic(b) || is_digit(b)
 }
 
 #[cfg(test)]
