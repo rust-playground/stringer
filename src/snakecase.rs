@@ -213,12 +213,10 @@ where
 }
 
 fn snakecase_mod_ascii(result: &mut Vec<u8>, bytes: &[u8]) {
-    let mut b;
     let mut idx = 0;
 
     while idx < bytes.len() {
-        b = bytes[idx];
-        if !b.is_ascii_alphanumeric() {
+        if !bytes[idx].is_ascii_alphanumeric() {
             idx += 1;
             continue;
         }
@@ -227,32 +225,15 @@ fn snakecase_mod_ascii(result: &mut Vec<u8>, bytes: &[u8]) {
             result.push(UNDERSCORE_BYTE);
         }
 
-        if b.is_ascii_uppercase() {
-            result.push(b.to_ascii_lowercase());
+        while idx < bytes.len() && bytes[idx].is_ascii_uppercase() {
+            result.push(bytes[idx].to_ascii_lowercase());
             idx += 1;
-            while idx < bytes.len() {
-                b = bytes[idx];
-                if b.is_ascii_uppercase() {
-                    result.push(b.to_ascii_lowercase());
-                    idx += 1;
-                    continue;
-                }
-                break;
-            }
         }
 
-        if b.is_ascii_lowercase() || b.is_ascii_digit() {
-            result.push(b);
+        while idx < bytes.len() && (bytes[idx].is_ascii_lowercase() || bytes[idx].is_ascii_digit())
+        {
+            result.push(bytes[idx]);
             idx += 1;
-            while idx < bytes.len() {
-                b = bytes[idx];
-                if b.is_ascii_lowercase() || b.is_ascii_digit() {
-                    result.push(b);
-                    idx += 1;
-                    continue;
-                }
-                break;
-            }
         }
     }
 }
