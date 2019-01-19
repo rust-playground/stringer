@@ -232,7 +232,12 @@ where
     let mut b = bytes[idx];
 
     if !is_alphanumeric(b) {
-        let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
+        let mut result: String = if bytes.len() > 64 {
+            String::with_capacity(bytes.len() + 7)
+        } else {
+            String::with_capacity(64)
+        };
+        // let mut result: String = String::with_capacity(bytes.len() + 7); // 64 plays nice with the L2 cache in most situations
         while idx < bytes.len() {
             b = bytes[idx];
             if !is_alphanumeric(b) {
@@ -245,7 +250,11 @@ where
         return result.into();
     } else if is_uppercase(b) {
         // string needs to be modified
-        let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
+        let mut result: String = if bytes.len() > 64 {
+            String::with_capacity(bytes.len() + 7)
+        } else {
+            String::with_capacity(64)
+        };
         result.push((b as char).to_lowercase().next().unwrap());
         // loop until finding another non-alpha or multiple underscores then add in bulk to string
         if idx < l {
@@ -273,13 +282,23 @@ where
                     }
                 }
                 // a no go character, string needs modification
-                let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
+                let mut result: String = if bytes.len() > 64 {
+                    String::with_capacity(bytes.len() + 7)
+                } else {
+                    String::with_capacity(64)
+                };
                 result.push_str(&input[..idx]);
                 snakecase_mod_ascii(&mut result, &bytes[idx..]);
                 return result.into();
             } else if is_uppercase(b) {
                 // string needs to be modified
-                let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
+
+                // although there is overhead it alows more balanced performance for both short and long input
+                let mut result: String = if bytes.len() > 64 {
+                    String::with_capacity(bytes.len() + 7) // if longer than 64, better to do length
+                } else {
+                    String::with_capacity(64) // plays nice with the L2 cache
+                };
                 result.push_str(&input[..idx]);
                 if idx < l {
                     idx += 1;
