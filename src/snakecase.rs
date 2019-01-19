@@ -13,7 +13,7 @@ where
             let mut chars = chars.fuse().peekable();
             if c.is_uppercase() {
                 // string needs to be modified
-                let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
+                let mut result: String = String::with_capacity(input.len() + 5);
                 result.push_str(&c.to_lowercase().to_string());
                 // loop until finding another non-alpha or multiple underscores then add in bulk to string
                 if let Some((_, c)) = chars.peek() {
@@ -25,7 +25,7 @@ where
                 return result.into();
             } else if !c.is_alphanumeric() {
                 // string needs to be modified
-                let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
+                let mut result: String = String::with_capacity(input.len() + 5);
                 snakecase_mod(false, &input, &mut result, &mut chars);
                 return result.into();
             } else {
@@ -45,13 +45,13 @@ where
                             }
                         }
                         // a no go character, string needs modification
-                        let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
+                        let mut result: String = String::with_capacity(input.len() + 5);
                         result.push_str(&input[..idx]);
                         snakecase_mod(true, &input, &mut result, &mut chars);
                         return result.into();
                     } else if c.is_uppercase() {
                         // string needs to be modified
-                        let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
+                        let mut result: String = String::with_capacity(input.len() + 5);
                         result.push_str(&input[..idx]);
                         if let Some((_, c)) = chars.peek() {
                             if !c.is_uppercase() {
