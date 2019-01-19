@@ -126,22 +126,19 @@ where
 
     if bytes[idx].is_ascii_uppercase() {
         // string needs to be modified
-        let mut result: Vec<u8> = if bytes.len() > 64 {
-            Vec::with_capacity(bytes.len() + 7)
-        } else {
-            Vec::with_capacity(64)
-        };
+        // let mut result: Vec<u8> = if bytes.len() > 64 {
+        //     Vec::with_capacity(bytes.len() + 7)
+        // } else {
+        //     Vec::with_capacity(64)
+        // };
+        let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
         result.push(bytes[idx].to_ascii_lowercase());
         snakecase_mod_ascii(&mut result, &bytes[idx + 1..]);
         // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
         // to only have utf-8 at this point.
         return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
     } else if !bytes[idx].is_ascii_alphanumeric() {
-        let mut result: Vec<u8> = if bytes.len() > 64 {
-            Vec::with_capacity(bytes.len() + 7)
-        } else {
-            Vec::with_capacity(64)
-        };
+        let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
         while idx < bytes.len() && !bytes[idx].is_ascii_alphanumeric() {
             idx += 1;
         }
@@ -156,11 +153,7 @@ where
                 // string needs to be modified
 
                 // although there is overhead it alows more balanced performance for both short and long input
-                let mut result: Vec<u8> = if bytes.len() > 64 {
-                    Vec::with_capacity(bytes.len() + 7) // if longer than 64, better to do length
-                } else {
-                    Vec::with_capacity(64) // plays nice with the L2 cache
-                };
+                let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
                 result.extend_from_slice(&bytes[..idx]);
                 if idx < l {
                     idx += 1;
@@ -185,11 +178,7 @@ where
                     continue;
                 }
                 // a no go character, string needs modification
-                let mut result: Vec<u8> = if bytes.len() > 64 {
-                    Vec::with_capacity(bytes.len() + 7)
-                } else {
-                    Vec::with_capacity(64)
-                };
+                let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
                 result.extend_from_slice(&bytes[..idx]);
                 snakecase_mod_ascii(&mut result, &bytes[idx..]);
                 // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
