@@ -15,7 +15,6 @@ where
                 // string needs to be modified
                 let mut result: String = String::with_capacity(input.len() + 5);
                 result.push_str(&c.to_lowercase().to_string());
-                // loop until finding another non-alpha or multiple underscores then add in bulk to string
                 if let Some((_, c)) = chars.peek() {
                     if !c.is_uppercase() {
                         result.push(UNDERSCORE_CHAR);
@@ -39,7 +38,7 @@ where
                                 if c2.is_lowercase() || c2.is_numeric() {
                                     // is a single underscore followed by a lowercase or digit
                                     // still no modifications needed
-                                    chars.next();
+                                    chars.next(); //consume char as it's ok
                                     continue;
                                 }
                             }
