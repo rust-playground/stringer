@@ -11,12 +11,7 @@ where
     match chars.next() {
         Some((_, c)) => {
             let mut chars = chars.fuse().peekable();
-            if !c.is_alphanumeric() {
-                // string needs to be modified
-                let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
-                snakecase_mod(false, &input, &mut result, &mut chars);
-                return result.into();
-            } else if c.is_uppercase() {
+            if c.is_uppercase() {
                 // string needs to be modified
                 let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
                 result.push_str(&c.to_lowercase().to_string());
@@ -26,6 +21,11 @@ where
                         result.push(UNDERSCORE_CHAR);
                     }
                 }
+                snakecase_mod(false, &input, &mut result, &mut chars);
+                return result.into();
+            } else if !c.is_alphanumeric() {
+                // string needs to be modified
+                let mut result: String = String::with_capacity(64); // 64 plays nich with the L2 cache in most situations
                 snakecase_mod(false, &input, &mut result, &mut chars);
                 return result.into();
             } else {
@@ -123,13 +123,22 @@ where
     let mut idx = 0;
     let mut b = bytes[idx];
 
-    if !is_alphanumeric(b) {
+    if is_uppercase(b) {
+        // string needs to be modified
         let mut result: String = if bytes.len() > 64 {
             String::with_capacity(bytes.len() + 7)
         } else {
             String::with_capacity(64)
         };
-        // let mut result: String = String::with_capacity(bytes.len() + 7); // 64 plays nice with the L2 cache in most situations
+        result.push((b as char).to_lowercase().next().unwrap());
+        snakecase_mod_ascii(&mut result, &bytes[idx + 1..]);
+        return result.into();
+    } else if !is_alphanumeric(b) {
+        let mut result: String = if bytes.len() > 64 {
+            String::with_capacity(bytes.len() + 7)
+        } else {
+            String::with_capacity(64)
+        };
         while idx < bytes.len() {
             b = bytes[idx];
             if !is_alphanumeric(b) {
@@ -140,32 +149,36 @@ where
         }
         snakecase_mod_ascii(&mut result, &bytes[idx..]);
         return result.into();
-    } else if is_uppercase(b) {
-        // string needs to be modified
-        let mut result: String = if bytes.len() > 64 {
-            String::with_capacity(bytes.len() + 7)
-        } else {
-            String::with_capacity(64)
-        };
-        result.push((b as char).to_lowercase().next().unwrap());
-        // loop until finding another non-alpha or multiple underscores then add in bulk to string
-        if idx < l {
-            idx += 1;
-            if !is_uppercase(bytes[idx]) {
-                result.push(UNDERSCORE_CHAR);
-            }
-            snakecase_mod_ascii(&mut result, &bytes[idx..]);
-        }
-        return result.into();
     } else {
+        let mut b2;
         // check until hitting a bad value
         while idx < bytes.len() {
             b = bytes[idx];
 
-            if !is_alphanumeric(b) {
-                // check for double _ with peek
+            if is_uppercase(b) {
+                // string needs to be modified
+
+                // although there is overhead it alows more balanced performance for both short and long input
+                let mut result: String = if bytes.len() > 64 {
+                    String::with_capacity(bytes.len() + 7) // if longer than 64, better to do length
+                } else {
+                    String::with_capacity(64) // plays nice with the L2 cache
+                };
+                result.push_str(&input[..idx]);
+                if idx < l {
+                    idx += 1;
+                    b2 = bytes[idx];
+                    if !is_uppercase(b2) {
+                        result.push(UNDERSCORE_CHAR);
+                    }
+                    result.push((b as char).to_lowercase().next().unwrap());
+                    snakecase_mod_ascii(&mut result, &bytes[idx..]);
+                }
+                return result.into();
+            } else if !is_alphanumeric(b) {
+                // check for double _
                 if b == b'_' && idx < l {
-                    let b2 = bytes[idx + 1];
+                    b2 = bytes[idx + 1];
                     if is_lowercase(b2) || is_digit(b2) {
                         // is a single underscore followed by a lowercase or digit
                         // still no modifications needed
@@ -181,26 +194,6 @@ where
                 };
                 result.push_str(&input[..idx]);
                 snakecase_mod_ascii(&mut result, &bytes[idx..]);
-                return result.into();
-            } else if is_uppercase(b) {
-                // string needs to be modified
-
-                // although there is overhead it alows more balanced performance for both short and long input
-                let mut result: String = if bytes.len() > 64 {
-                    String::with_capacity(bytes.len() + 7) // if longer than 64, better to do length
-                } else {
-                    String::with_capacity(64) // plays nice with the L2 cache
-                };
-                result.push_str(&input[..idx]);
-                if idx < l {
-                    idx += 1;
-                    let b2 = bytes[idx];
-                    if !is_uppercase(b2) {
-                        result.push(UNDERSCORE_CHAR);
-                    }
-                    result.push((b as char).to_lowercase().next().unwrap());
-                    snakecase_mod_ascii(&mut result, &bytes[idx..]);
-                }
                 return result.into();
             }
             idx += 1;
