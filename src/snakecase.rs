@@ -328,12 +328,12 @@ fn snakecase_mod_ascii(result: &mut String, bytes: &[u8]) {
         }
 
         if is_lowercase(b) || is_digit(b) {
-            result.push((b as char).to_lowercase().next().unwrap());
+            result.push(b as char);
             idx += 1;
             while idx < bytes.len() {
                 b = bytes[idx];
                 if is_lowercase(b) || is_digit(b) {
-                    result.push((b as char).to_lowercase().next().unwrap());
+                    result.push(b as char);
                     idx += 1;
                     continue;
                 }
