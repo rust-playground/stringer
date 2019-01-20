@@ -125,11 +125,6 @@ where
 
     if bytes[idx].is_ascii_uppercase() {
         // string needs to be modified
-        // let mut result: Vec<u8> = if bytes.len() > 64 {
-        //     Vec::with_capacity(bytes.len() + 7)
-        // } else {
-        //     Vec::with_capacity(64)
-        // };
         let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
         result.push(bytes[idx].to_ascii_lowercase());
         snakecase_mod_ascii(&mut result, &bytes[idx + 1..]);
@@ -147,44 +142,25 @@ where
         return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
     } else {
         // check until hitting a bad value
-        while idx < bytes.len() {
-            if bytes[idx].is_ascii_uppercase() {
-                // string needs to be modified
-
-                // although there is overhead it alows more balanced performance for both short and long input
-                let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
-                result.extend_from_slice(&bytes[..idx]);
-                if idx < l {
-                    idx += 1;
-                    if !bytes[idx].is_ascii_uppercase() {
-                        result.push(UNDERSCORE_BYTE);
-                    }
-                    result.push(bytes[idx - 1].to_ascii_lowercase());
-                    snakecase_mod_ascii(&mut result, &bytes[idx..]);
-                }
-                // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
-                // to only have utf-8 at this point.
-                return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
-            } else if !bytes[idx].is_ascii_alphanumeric() {
-                // check for double _
-                if bytes[idx] == b'_'
+        while idx < bytes.len()
+            && ((bytes[idx].is_ascii_lowercase() || bytes[idx].is_ascii_digit())
+                || (bytes[idx] == UNDERSCORE_BYTE
                     && idx < l
-                    && (bytes[idx + 1].is_ascii_lowercase() || bytes[idx + 1].is_ascii_digit())
-                {
-                    // is a single underscore followed by a lowercase or digit
-                    // still no modifications needed
-                    idx += 2;
-                    continue;
-                }
-                // a no go character, string needs modification
-                let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
-                result.extend_from_slice(&bytes[..idx]);
-                snakecase_mod_ascii(&mut result, &bytes[idx..]);
-                // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
-                // to only have utf-8 at this point.
-                return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
-            }
+                    && (bytes[idx + 1].is_ascii_lowercase() || bytes[idx + 1].is_ascii_digit())))
+        {
             idx += 1;
+        }
+
+        if idx < bytes.len() {
+            let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
+            result.extend_from_slice(&bytes[..idx]);
+            if bytes[idx].is_ascii_uppercase() && idx < l && !bytes[idx + 1].is_ascii_uppercase() {
+                result.push(UNDERSCORE_BYTE);
+            }
+            snakecase_mod_ascii(&mut result, &bytes[idx..]);
+            // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
+            // to only have utf-8 at this point.
+            return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
         }
     }
     input
