@@ -2,7 +2,7 @@
 
 extern crate test;
 
-use stringer::snakecase::{to_snakecase, to_snakecase_ascii};
+use stringer::{to_snakecase, to_snakecase_ascii};
 
 macro_rules! snakecase_bench {
     ($name:ident, $s:expr) => {
