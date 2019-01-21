@@ -7,66 +7,42 @@ where
     S: Into<Cow<'a, str>>,
 {
     let input = s.into();
-    let mut chars = input.char_indices();
-    match chars.next() {
-        Some((_, c)) => {
-            let mut chars = chars.fuse().peekable();
-            if c.is_uppercase() {
-                // string needs to be modified
-                let mut result: String = String::with_capacity(input.len() + 5);
-                result.push_str(&c.to_lowercase().to_string());
-                if let Some((_, c)) = chars.peek() {
-                    if !c.is_uppercase() {
-                        result.push(UNDERSCORE_CHAR);
-                    }
-                }
-                snakecase_mod(false, &input, &mut result, &mut chars);
-                return result.into();
-            } else if !c.is_alphanumeric() {
-                // string needs to be modified
-                let mut result: String = String::with_capacity(input.len() + 5);
-                snakecase_mod(false, &input, &mut result, &mut chars);
-                return result.into();
-            } else {
-                // string is ok so far
-                // return input
-                while let Some((idx, c)) = chars.next() {
-                    if !c.is_alphanumeric() {
-                        // check for double _ with peek
-                        if c == '_' {
-                            if let Some((_, c2)) = chars.peek() {
-                                if c2.is_lowercase() || c2.is_numeric() {
-                                    // is a single underscore followed by a lowercase or digit
-                                    // still no modifications needed
-                                    chars.next(); //consume char as it's ok
-                                    continue;
-                                }
-                            }
-                        }
-                        // a no go character, string needs modification
-                        let mut result: String = String::with_capacity(input.len() + 5);
-                        result.push_str(&input[..idx]);
-                        snakecase_mod(true, &input, &mut result, &mut chars);
-                        return result.into();
-                    } else if c.is_uppercase() {
-                        // string needs to be modified
-                        let mut result: String = String::with_capacity(input.len() + 5);
-                        result.push_str(&input[..idx]);
-                        if let Some((_, c)) = chars.peek() {
-                            if !c.is_uppercase() {
-                                result.push(UNDERSCORE_CHAR);
-                            }
-                        }
-                        result.push_str(&c.to_lowercase().to_string());
-                        snakecase_mod(false, &input, &mut result, &mut chars);
-                        return result.into();
-                    }
-                }
-            }
-            input
+    let mut chars = input.char_indices().fuse().peekable();
+
+    while let Some((i, c)) = chars.next() {
+        if c.is_lowercase() || c.is_numeric() {
+            continue;
         }
-        None => input,
+        if c == UNDERSCORE_CHAR {
+            if let Some((_, c)) = chars.peek() {
+                if c.is_lowercase() || c.is_numeric() {
+                    chars.nth(0);
+                    continue;
+                }
+            } else {
+                // need to manipulate string '_' is the past character in the string
+                // can return directly from here as we know to just strip the last char
+                return Cow::Owned(input[..i].to_owned());
+            }
+        }
+        // if we got here then we need to manipulate the string
+        let mut result: String = String::with_capacity(input.len() + 5);
+        result.push_str(&input[..i]);
+
+        if !c.is_alphanumeric() {
+            snakecase_mod(i > 0, &input, &mut result, &mut chars);
+        } else if c.is_uppercase() {
+            if i > 0 {
+                result.push(UNDERSCORE_CHAR);
+            }
+            result.extend(c.to_lowercase());
+            if let Some((_, c)) = chars.peek() {
+                snakecase_mod(!c.is_alphanumeric(), &input, &mut result, &mut chars);
+            }
+        }
+        return Cow::Owned(result);
     }
+    input
 }
 
 fn snakecase_mod(
@@ -75,37 +51,37 @@ fn snakecase_mod(
     result: &mut String,
     chars: &mut std::iter::Peekable<std::iter::Fuse<std::str::CharIndices<'_>>>,
 ) {
-    while let Some((start, c)) = chars.next() {
+    while let Some((_, c)) = chars.next() {
         if !c.is_alphanumeric() {
             continue;
         }
-
         if add_underscore {
             result.push(UNDERSCORE_CHAR);
         }
 
         if c.is_uppercase() {
-            while let Some((end, c)) = chars.peek() {
-                if !c.is_uppercase() {
-                    result.push_str(&input[start..*end].to_lowercase());
-                    return snakecase_mod(!c.is_lowercase(), &input, result, chars);
+            result.extend(c.to_lowercase());
+            while let Some((_, c)) = chars.peek() {
+                if c.is_uppercase() {
+                    result.extend(c.to_lowercase());
+                    chars.next();
+                    continue;
                 }
-                chars.next();
+                return snakecase_mod(!c.is_lowercase(), &input, result, chars);
             }
-            result.push_str(&input[start..].to_lowercase());
-            return;
         }
 
-        // must be lowercase
-        while let Some((end, c)) = chars.peek() {
-            if !c.is_lowercase() && !c.is_numeric() {
-                result.push_str(&input[start..*end]);
+        if c.is_lowercase() || c.is_numeric() {
+            result.push(c);
+            while let Some((_, c)) = chars.peek() {
+                if c.is_lowercase() || c.is_numeric() {
+                    result.push(*c);
+                    chars.next();
+                    continue;
+                }
                 return snakecase_mod(true, &input, result, chars);
             }
-            chars.next();
         }
-        result.push_str(&input[start..]);
-        return;
     }
 }
 
@@ -214,7 +190,7 @@ mod tests {
         false
     );
     snakecase_test!(special_chars, "FOO:BAR$BAZ", "foo_bar_baz", false);
-    snakecase_test!(caps, "samPLE text", "sample_text", false);
+    snakecase_test!(caps, "samPLE text", "sam_ple_text", false);
     snakecase_test!(
         multi_spaces,
         "   sample   2    Text   ",
