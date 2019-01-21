@@ -116,80 +116,54 @@ where
     S: Into<Cow<'a, str>>,
 {
     let input = s.into();
-    if input.is_empty() {
-        return input;
-    }
     let bytes = input.as_bytes();
-    let l = bytes.len() - 1;
     let mut idx = 0;
 
-    if bytes[idx].is_ascii_uppercase() {
-        // string needs to be modified
-        let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
-        result.push(bytes[idx].to_ascii_lowercase());
-        snakecase_mod_ascii(&mut result, &bytes[idx + 1..]);
-        // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
-        // to only have utf-8 at this point.
-        return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
-    } else if !bytes[idx].is_ascii_alphanumeric() {
-        let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
-        while idx < bytes.len() && !bytes[idx].is_ascii_alphanumeric() {
-            idx += 1;
-        }
-        snakecase_mod_ascii(&mut result, &bytes[idx..]);
-        // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
-        // to only have utf-8 at this point.
-        return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
-    } else {
-        // check until hitting a bad value
-        while idx < bytes.len()
-            && ((bytes[idx].is_ascii_lowercase() || bytes[idx].is_ascii_digit())
-                || (bytes[idx] == UNDERSCORE_BYTE
-                    && idx < l
-                    && (bytes[idx + 1].is_ascii_lowercase() || bytes[idx + 1].is_ascii_digit())))
-        {
-            idx += 1;
-        }
+    // loop through all good characters:
+    // - lowercase
+    // - digit
+    // - underscore (as long as the next character is lowercase or digit)
+    while idx < bytes.len()
+        && ((bytes[idx].is_ascii_lowercase() || bytes[idx].is_ascii_digit())
+            || (bytes[idx] == UNDERSCORE_BYTE
+                && idx < bytes.len() - 1
+                && (bytes[idx + 1].is_ascii_lowercase() || bytes[idx + 1].is_ascii_digit())))
+    {
+        idx += 1;
+    }
 
-        if idx < bytes.len() {
-            let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
-            result.extend_from_slice(&bytes[..idx]);
-            if bytes[idx].is_ascii_uppercase() && idx < l && !bytes[idx + 1].is_ascii_uppercase() {
+    // if we haven't gone through all of the characters then we must need to manipulate the string
+    if idx < bytes.len() {
+        let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
+        result.extend_from_slice(&bytes[..idx]);
+
+        while idx < bytes.len() {
+            if !bytes[idx].is_ascii_alphanumeric() {
+                idx += 1;
+                continue;
+            }
+
+            if !result.is_empty() {
                 result.push(UNDERSCORE_BYTE);
             }
-            snakecase_mod_ascii(&mut result, &bytes[idx..]);
-            // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
-            // to only have utf-8 at this point.
-            return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
+
+            while idx < bytes.len() && bytes[idx].is_ascii_uppercase() {
+                result.push(bytes[idx].to_ascii_lowercase());
+                idx += 1;
+            }
+
+            while idx < bytes.len()
+                && (bytes[idx].is_ascii_lowercase() || bytes[idx].is_ascii_digit())
+            {
+                result.push(bytes[idx]);
+                idx += 1;
+            }
         }
+        // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
+        // to only have utf-8 at this point.
+        return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
     }
-    input
-}
-
-fn snakecase_mod_ascii(result: &mut Vec<u8>, bytes: &[u8]) {
-    let mut idx = 0;
-
-    while idx < bytes.len() {
-        if !bytes[idx].is_ascii_alphanumeric() {
-            idx += 1;
-            continue;
-        }
-
-        if idx > 0 {
-            result.push(UNDERSCORE_BYTE);
-        }
-
-        while idx < bytes.len() && bytes[idx].is_ascii_uppercase() {
-            result.push(bytes[idx].to_ascii_lowercase());
-            idx += 1;
-        }
-
-        while idx < bytes.len() && (bytes[idx].is_ascii_lowercase() || bytes[idx].is_ascii_digit())
-        {
-            result.push(bytes[idx]);
-            idx += 1;
-        }
-    }
+    input // no changes needed, can just borrow the string
 }
 
 #[cfg(test)]
@@ -214,6 +188,7 @@ mod tests {
         };
     }
 
+    snakecase_test!(empty, "", "", true);
     snakecase_test!(equal, "sample_text", "sample_text", true);
     snakecase_test!(space, "sample text", "sample_text", false);
     snakecase_test!(dash, "sample-text", "sample_text", false);
@@ -300,6 +275,7 @@ mod tests {
         };
     }
 
+    snakecase_ascii_test!(ascii_empty, "", "", true);
     snakecase_ascii_test!(ascii_equal, "sample_text", "sample_text", true);
     snakecase_ascii_test!(ascii_space, "sample text", "sample_text", false);
     snakecase_ascii_test!(ascii_dash, "sample-text", "sample_text", false);
@@ -335,7 +311,7 @@ mod tests {
         false
     );
     snakecase_ascii_test!(ascii_special_chars, "FOO:BAR$BAZ", "foo_bar_baz", false);
-    snakecase_ascii_test!(ascii_caps, "samPLE text", "sample_text", false);
+    snakecase_ascii_test!(ascii_caps, "samPLE text", "sam_ple_text", false);
     snakecase_ascii_test!(
         ascii_multi_spaces,
         "   sample   2    Text   ",
