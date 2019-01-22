@@ -108,40 +108,41 @@ where
         idx += 1;
     }
 
-    // if we haven't gone through all of the characters then we must need to manipulate the string
-    if idx < bytes.len() {
-        let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
-        // handles digit followed by an uppercase character to match a previous libraries functionality
-        if idx > 0 && bytes[idx - 1].is_ascii_digit() {
-            idx -= 1;
-        }
-        result.extend_from_slice(&bytes[..idx]);
-
-        while idx < bytes.len() {
-            if !bytes[idx].is_ascii_alphanumeric() {
-                idx += 1;
-                continue;
-            }
-
-            if !result.is_empty() {
-                result.push(UNDERSCORE_BYTE);
-            }
-
-            while idx < bytes.len() && is_upper_or_digit(bytes[idx]) {
-                result.push(bytes[idx].to_ascii_lowercase());
-                idx += 1;
-            }
-
-            while idx < bytes.len() && is_lower_or_digit(bytes[idx]) {
-                result.push(bytes[idx]);
-                idx += 1;
-            }
-        }
-        // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
-        // to only have utf-8 at this point.
-        return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
+    if idx >= bytes.len() {
+        // '>=' performs much better than '==', I suspect it's due to bounds checking
+        return input; // no changes needed, can just borrow the string
     }
-    input // no changes needed, can just borrow the string
+    // if we get then we must need to manipulate the string
+    let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
+    // handles digit followed by an uppercase character to match a previous libraries functionality
+    if idx > 0 && bytes[idx - 1].is_ascii_digit() {
+        idx -= 1;
+    }
+    result.extend_from_slice(&bytes[..idx]);
+
+    while idx < bytes.len() {
+        if !bytes[idx].is_ascii_alphanumeric() {
+            idx += 1;
+            continue;
+        }
+
+        if !result.is_empty() {
+            result.push(UNDERSCORE_BYTE);
+        }
+
+        while idx < bytes.len() && is_upper_or_digit(bytes[idx]) {
+            result.push(bytes[idx].to_ascii_lowercase());
+            idx += 1;
+        }
+
+        while idx < bytes.len() && is_lower_or_digit(bytes[idx]) {
+            result.push(bytes[idx]);
+            idx += 1;
+        }
+    }
+    // we know this is safe because prior to this we eliminated all non-ascii chars so we are guaranteed
+    // to only have utf-8 at this point.
+    Cow::Owned(unsafe { String::from_utf8_unchecked(result) })
 }
 
 #[inline]
