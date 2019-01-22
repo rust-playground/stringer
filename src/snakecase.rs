@@ -100,10 +100,10 @@ where
     // - digit
     // - underscore (as long as the next character is lowercase or digit)
     while idx < bytes.len()
-        && ((bytes[idx].is_ascii_lowercase() || bytes[idx].is_ascii_digit())
+        && (is_lower_or_digit(bytes[idx])
             || (bytes[idx] == UNDERSCORE_BYTE
                 && idx < bytes.len() - 1
-                && (bytes[idx + 1].is_ascii_lowercase() || bytes[idx + 1].is_ascii_digit())))
+                && is_lower_or_digit(bytes[idx + 1])))
     {
         idx += 1;
     }
@@ -127,16 +127,12 @@ where
                 result.push(UNDERSCORE_BYTE);
             }
 
-            while idx < bytes.len()
-                && (bytes[idx].is_ascii_uppercase() || bytes[idx].is_ascii_digit())
-            {
+            while idx < bytes.len() && is_upper_or_digit(bytes[idx]) {
                 result.push(bytes[idx].to_ascii_lowercase());
                 idx += 1;
             }
 
-            while idx < bytes.len()
-                && (bytes[idx].is_ascii_lowercase() || bytes[idx].is_ascii_digit())
-            {
+            while idx < bytes.len() && is_lower_or_digit(bytes[idx]) {
                 result.push(bytes[idx]);
                 idx += 1;
             }
@@ -146,6 +142,16 @@ where
         return Cow::Owned(unsafe { String::from_utf8_unchecked(result) });
     }
     input // no changes needed, can just borrow the string
+}
+
+#[inline]
+fn is_upper_or_digit(b: u8) -> bool {
+    b.is_ascii_uppercase() || b.is_ascii_digit()
+}
+
+#[inline]
+fn is_lower_or_digit(b: u8) -> bool {
+    b.is_ascii_lowercase() || b.is_ascii_digit()
 }
 
 #[cfg(test)]
