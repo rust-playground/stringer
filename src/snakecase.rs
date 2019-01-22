@@ -111,6 +111,10 @@ where
     // if we haven't gone through all of the characters then we must need to manipulate the string
     if idx < bytes.len() {
         let mut result: Vec<u8> = Vec::with_capacity(bytes.len() + 5);
+        // handles digit followed by an uppercase character to match a previous libraries functionality
+        if idx > 0 && bytes[idx - 1].is_ascii_digit() {
+            idx -= 1;
+        }
         result.extend_from_slice(&bytes[..idx]);
 
         while idx < bytes.len() {
@@ -123,7 +127,9 @@ where
                 result.push(UNDERSCORE_BYTE);
             }
 
-            while idx < bytes.len() && bytes[idx].is_ascii_uppercase() {
+            while idx < bytes.len()
+                && (bytes[idx].is_ascii_uppercase() || bytes[idx].is_ascii_digit())
+            {
                 result.push(bytes[idx].to_ascii_lowercase());
                 idx += 1;
             }
@@ -334,4 +340,8 @@ mod tests {
         "foo_bar_baz_sample_text",
         false
     );
+    snakecase_ascii_test!(ascii_digit_underscore, "5test", "5test", true);
+    snakecase_ascii_test!(ascii_character_digit, "test5", "test5", true);
+    snakecase_ascii_test!(ascii_uppercase_digit, "THE5r", "the5r", false);
+    snakecase_ascii_test!(ascii_digit_uppercase, "5TEst", "5test", false);
 }
