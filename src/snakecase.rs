@@ -7,7 +7,7 @@ where
     S: Into<Cow<'a, str>>,
 {
     let input = s.into();
-    let mut chars = input.char_indices().fuse().peekable();
+    let mut chars = input.char_indices().peekable();
 
     while let Some((i, c)) = chars.next() {
         if c.is_lowercase() || c.is_numeric() {
@@ -49,7 +49,7 @@ fn snakecase_mod(
     add_underscore: bool,
     input: &str,
     result: &mut String,
-    chars: &mut std::iter::Peekable<std::iter::Fuse<std::str::CharIndices<'_>>>,
+    chars: &mut std::iter::Peekable<std::str::CharIndices<'_>>,
 ) {
     while let Some((_, c)) = chars.next() {
         if !c.is_alphanumeric() {
@@ -130,8 +130,7 @@ where
             result.push(UNDERSCORE_BYTE);
         }
 
-        while idx < bytes.len() && is_upper_or_digit(bytes[idx]) {
-            result.push(bytes[idx].to_ascii_lowercase());
+        while idx < bytes.len() && is_upper_or_digit_add(&mut result, bytes[idx]) {
             idx += 1;
         }
 
@@ -146,8 +145,16 @@ where
 }
 
 #[inline]
-fn is_upper_or_digit(b: u8) -> bool {
-    b.is_ascii_uppercase() || b.is_ascii_digit()
+fn is_upper_or_digit_add(result: &mut Vec<u8>, b: u8) -> bool {
+    if b.is_ascii_uppercase() {
+        result.push(b.to_ascii_lowercase());
+        true
+    } else if b.is_ascii_digit() {
+        result.push(b);
+        true
+    } else {
+        false
+    }
 }
 
 #[inline]
