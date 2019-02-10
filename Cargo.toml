@@ -2,6 +2,18 @@
 name = "stringer"
 version = "0.1.0"
 authors = ["Dean Karn <dean.karn@gmail.com>"]
+license = "MIT"
 edition = "2018"
+description = "reusable code and helper functions related to string checking and manipulation."
 
 [dependencies]
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "bench"
+harness = false
+
+[lib]
+bench = false

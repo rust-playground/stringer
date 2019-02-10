@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 const UNDERSCORE_CHAR: char = '_';
 
+/// to_snakecase takes an argument which then is check and if necessary modified into ensuring the text is in snakecazse format
 pub fn to_snakecase<'a, S>(s: S) -> Cow<'a, str>
 where
     S: Into<Cow<'a, str>>,
@@ -87,6 +88,7 @@ fn snakecase_mod(
 
 const UNDERSCORE_BYTE: u8 = b'_';
 
+/// to_snakecase_ascii takes an argument which then is check and if necessary modified into ensuring the text is in snakecazse format, unicode characters are discarded.
 pub fn to_snakecase_ascii<'a, S>(s: S) -> Cow<'a, str>
 where
     S: Into<Cow<'a, str>>,
